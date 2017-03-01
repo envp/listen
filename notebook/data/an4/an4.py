@@ -2,6 +2,8 @@
 
 import os
 import re
+import itertools
+import pprint
 
 __author__ = "Vaibhav Yenamandra <vyenaman@ufl.edu>"
 
@@ -20,7 +22,7 @@ class DictionMap(object):
 
     def __iter__(self):
         for k, v in self.diction.items():
-            yield (k, v)
+            yield k, v
 
     def parse_data(self, fpath):
         phones = {}
@@ -44,7 +46,11 @@ class AN4Data(object):
     """
 
     def __init__(self, datapath, truthpath):
-        self.data = [os.path.realpath(line + '.raw') for line in open(datapath, 'r')]
+        self.data = [
+            os.path.realpath(os.path.join(
+                os.path.dirname(line), os.path.basename(line).rstrip() + '.raw'
+            )) for line in open(datapath, 'r')
+        ]
         self.truth = self.parse_data(truthpath)
 
     def parse_data(self, fpath):
@@ -54,8 +60,28 @@ class AN4Data(object):
                 res = re.search(
                     r"(<s>)*\s*(?P<truth>[\w\s]+)\s*(</s>)*\s*\((?P<fileid>.+)\)", line
                 )
-                truth[res.group('fileid')] = res.group('truth').split(' ')
+                truth[
+                    res.group('fileid') + '.raw'] = res.group('truth').lstrip().rstrip().split(' ')
         return truth
+
+    def __iter__(self):
+        for d in self.data:
+            yield os.path.basename(d), self.truth[os.path.basename(d)]
+
+    def male(self):
+        return itertools.filterfalse(
+            lambda s: not os.path.basename(
+                os.path.dirname(s)).startswith('m'), self.data
+        )
+
+    def female(self):
+        return itertools.filterfalse(
+            lambda s: not os.path.basename(
+                os.path.dirname(s)).startswith('f'), self.data
+        )
+
+    def file_ids(self):
+        return map(lambda s: os.path.basename(s).replace('.raw', ''), self.data)
 
 
 class AN4(object):
@@ -105,8 +131,8 @@ class AN4(object):
     def __init__(self):
         self.dictions = DictionMap(self.DICTIONARY_FILE)
         self.phonemes = self.phoneme_loads(open(self.PHONEME_LIST, 'r'))
-        self.train = AN4Data(self.TRAIN_DATA, self.TRAIN_TRUTH)
-        self.test = AN4Data(self.TEST_DATA, self.TEST_TRUTH)
+        self.trainset = AN4Data(self.TRAIN_DATA, self.TRAIN_TRUTH)
+        self.testset = AN4Data(self.TEST_DATA, self.TEST_TRUTH)
 
     def phoneme_loads(self, s):
         return [line for line in s]
