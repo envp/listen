@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import os
+import subprocess
 import re
 import itertools
 import pprint
+import logging
 
 __author__ = "Vaibhav Yenamandra <vyenaman@ufl.edu>"
+
+logger = logging.getLogger()
+logging.basicConfig(format='[%(levelname)s] %(message)s')
 
 
 class DictionMap(object):
@@ -45,13 +50,19 @@ class AN4Data(object):
     """Wraps the actual audio data in AN4
     """
 
-    def __init__(self, datapath, truthpath):
-        self.data = [
-            os.path.realpath(os.path.join(
-                os.path.dirname(line), os.path.basename(line).rstrip() + '.raw'
-            )) for line in open(datapath, 'r')
-        ]
+    def __init__(self, datapath, truthpath, convert):
+        to_res_path = lambda r: os.path.realpath(
+            os.path.join(
+                os.path.dirname(__file__),
+                'wav', os.path.dirname(r),
+                os.path.basename(r).strip() + '.raw'
+            )
+        )
+        self.data = map(to_res_path, [line for line in open(datapath, 'r')])
         self.truth = self.parse_data(truthpath)
+        if convert:
+            self.convert_to_wav()
+        self.data = map(lambda s: s.replace('.raw', '.wav'), self.data)
 
     def parse_data(self, fpath):
         truth = dict()
@@ -61,12 +72,15 @@ class AN4Data(object):
                     r"(<s>)*\s*(?P<truth>[\w\s]+)\s*(</s>)*\s*\((?P<fileid>.+)\)", line
                 )
                 truth[
-                    res.group('fileid') + '.raw'] = res.group('truth').lstrip().rstrip().split(' ')
+                    res.group('fileid') + '.wav'] = res.group('truth').lstrip().rstrip().split(' ')
         return truth
 
     def __iter__(self):
         for d in self.data:
             yield os.path.basename(d), self.truth[os.path.basename(d)]
+
+    def __getitem__(self, key):
+        return self.data[key], self.truth[os.path.basename(self.data[key])]
 
     def male(self):
         return itertools.filterfalse(
@@ -81,7 +95,15 @@ class AN4Data(object):
         )
 
     def file_ids(self):
-        return map(lambda s: os.path.basename(s).replace('.raw', ''), self.data)
+        return map(lambda s: os.path.basename(s).replace('.wav', ''), self.data)
+
+    def convert_to_wav(self):
+        count= 0
+        for f in self.data:
+            outname = os.path.join(os.path.dirname(f), os.path.basename(f).replace('.raw', '.wav'))
+            subprocess.run('ffmpeg -y -f s16le -ar 16k -ac 1 -i {} {}'.format(f, outname))
+            count += 1
+        logger.debug("Converted {} files".format(count))
 
 
 class AN4(object):
@@ -128,11 +150,25 @@ class AN4(object):
     assert os.path.exists(
         TEST_TRUTH), "No testing ground truth found at {}".format(TEST_TRUTH)
 
-    def __init__(self):
+    def __init__(self, debug=False, conversion=False):
+        if debug:
+            logger.setLevel(logging.DEBUG)
+        else:
+            logger.setLevel(logging.INFO    )
         self.dictions = DictionMap(self.DICTIONARY_FILE)
         self.phonemes = self.phoneme_loads(open(self.PHONEME_LIST, 'r'))
-        self.trainset = AN4Data(self.TRAIN_DATA, self.TRAIN_TRUTH)
-        self.testset = AN4Data(self.TEST_DATA, self.TEST_TRUTH)
+        self.trainset = AN4Data(self.TRAIN_DATA, self.TRAIN_TRUTH, conversion)
+        self.testset = AN4Data(self.TEST_DATA, self.TEST_TRUTH, conversion)
+        [
+            logger.debug("Loaded resource {}".format(r)) for r in [
+                self.DICTIONARY_FILE,
+                self.PHONEME_LIST,
+                self.TRAIN_DATA,
+                self.TRAIN_TRUTH,
+                self.TEST_DATA,
+                self.TEST_TRUTH
+            ]
+        ]
 
     def phoneme_loads(self, s):
         return [line for line in s]
