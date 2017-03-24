@@ -4,7 +4,6 @@ import os
 import subprocess
 import re
 import itertools
-import pprint
 import logging
 
 __author__ = "Vaibhav Yenamandra <vyenaman@ufl.edu>"
