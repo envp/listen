@@ -42,7 +42,9 @@ rate, data = wavfile.read(filename)
 data = Filter.butter_bandpass_filter(data, F_LO, F_HI, rate, order=1)
 
 
-# Most of the spectrogram has been taken from https://github.com/jameslyons/python_speech_features
+# Most of the spectrogram has been taken from :
+# https://github.com/jameslyons/python_speech_features
+# https://timsainb.github.io/spectrograms-mfccs-and-inversion-in-python.html
 wav_spectrogram = spg.Spectrogram(FFT_SIZE, STEP_SIZE, True, SPEC_THRESH)
 
 cepstrum = wav_spectrogram.compute_mel_cepstrum(data, NUM_MFCC_COMPONENTS, (F_START, F_END), compression=COMPRESSION)
