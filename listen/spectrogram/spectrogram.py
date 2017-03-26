@@ -5,6 +5,7 @@ import copy
 from listen.helpers.array_helpers import array_helpers as ahelp
 from listen.helpers.filters import Filter
 
+
 class Spectrogram(object):
     def __init__(self, fft_size, step_size, logscale, thresh):
         self.fftsize = int(fft_size)
@@ -85,12 +86,13 @@ class Spectrogram(object):
 
     def compute_mel_cepstrum(self, data, num_mfcc_comps, frange, compression=1):
         specgram = self.compute_spectrum(data)
-        mel_filter, _ = Filter.create_mel_filter(self.fftsize, num_mfcc_comps, *frange)
+        mel_filter, _ = Filter.create_mel_filter(
+            self.fftsize, num_mfcc_comps, *frange)
 
-        mel_cepstrum = np.transpose(mel_filter).dot(np.transpose(specgram))
-        mel_cepstrum = scipy.ndimage.zoom(mel_cepstrum.astype(
-            'float64'), [1, 1. / compression]).astype('float64')
+        mel_cepstrum = specgram.dot(mel_filter).T
+        if compression != 1:
+            mel_cepstrum = scipy.ndimage.zoom(mel_cepstrum.astype(
+                'float32'), [1, 1. / compression]).astype('float32')
+
         mel_cepstrum = mel_cepstrum[:, 1:-1]
         return mel_cepstrum
-
-
