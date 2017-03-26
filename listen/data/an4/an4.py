@@ -57,11 +57,11 @@ class AN4Data(object):
                 os.path.basename(r).strip() + '.raw'
             )
         )
-        self.data = map(to_res_path, [line for line in open(datapath, 'r')])
+        data = map(to_res_path, [line for line in open(datapath, 'r')])
         self.truth = self.parse_data(truthpath)
         if convert:
             self.convert_to_wav()
-        self.data = map(lambda s: s.replace('.raw', '.wav'), self.data)
+        self.data = map(lambda s: s.replace('.raw', '.wav'), data)
 
     def parse_data(self, fpath):
         truth = dict()
@@ -76,7 +76,7 @@ class AN4Data(object):
 
     def __iter__(self):
         for d in self.data:
-            yield os.path.basename(d), self.truth[os.path.basename(d)]
+            yield d, self.truth[os.path.basename(d)]
 
     def __getitem__(self, key):
         return self.data[key], self.truth[os.path.basename(self.data[key])]
