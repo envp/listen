@@ -1,29 +1,13 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 
 from scipy.io import wavfile
 from listen.helpers.filters import Filter
 from listen.spectrogram import spectrogram as spg
 
 
-class helpers(object):
-    @staticmethod
-    def hz2mel(hz):
-        """Convert a value in Hertz to Mels
-        :param hz: a value in Hz. This can also be a numpy array, conversion proceeds element-wise.
-        :returns: a value in Mels. If an array was passed in, an identical sized array is returned.
-        """
-        return 2595 * np.log10(1 + hz / 700.0)
-
-    @staticmethod
-    def mel2hz(mel):
-        """Convert a value in Mels to Hertz
-        :param mel: a value in Mels. This can also be a numpy array, conversion proceeds element-wise.
-        :returns: a value in Hertz. If an array was passed in, an identical sized array is returned.
-        """
-        return 700 * (10 ** (mel / 2595.0) - 1)
-
+class helper(object):
     @staticmethod
     def save_data(dataset=None,
                   fftsize=2048,
@@ -31,8 +15,7 @@ class helpers(object):
                   logscale=True,
                   spec_thresh=3,
                   n_mfcc=64,
-                  start=20,
-                  end=8000,
+                  start=20, end=8000,
                   compression=2):
         """Saves figures and numpy arrays containing spectra to local directories
         """

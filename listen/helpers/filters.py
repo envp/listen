@@ -1,9 +1,23 @@
 import numpy as np
 
 from scipy.signal import butter, lfilter
-from listen.helpers.helpers import helpers
 
 class Filter(object):
+    @staticmethod
+    def hz2mel(hz):
+        """Convert a value in Hertz to Mels
+        :param hz: a value in Hz. This can also be a numpy array, conversion proceeds element-wise.
+        :returns: a value in Mels. If an array was passed in, an identical sized array is returned.
+        """
+        return 1125 * np.log10(1 + hz / 700.0)
+
+    @staticmethod
+    def mel2hz(mel):
+        """Convert a value in Mels to Hertz
+        :param mel: a value in Mels. This can also be a numpy array, conversion proceeds element-wise.
+        :returns: a value in Hertz. If an array was passed in, an identical sized array is returned.
+        """
+        return 700 * (10 ** (mel / 1125.0) - 1)
 
     @staticmethod
     def butter_bandpass(lowcut, highcut, fs, order=5):
@@ -40,12 +54,12 @@ class Filter(object):
         assert highfreq <= samplerate / 2, "highfreq is greater than samplerate/2"
 
         # compute points evenly spaced in mels
-        lowmel = helpers.hz2mel(lowfreq)
-        highmel = helpers.hz2mel(highfreq)
+        lowmel = Filter.hz2mel(lowfreq)
+        highmel = Filter.hz2mel(highfreq)
         melpoints = np.linspace(lowmel, highmel, nfilt + 2)
         # our points are in Hz, but we use fft bin_numbers, so we have to convert
         #  from Hz to fft bin_number number
-        bin_number = np.floor((nfft + 1) * helpers.mel2hz(melpoints) / samplerate)
+        bin_number = np.floor((nfft + 1) * Filter.mel2hz(melpoints) / samplerate)
 
         fbank = np.zeros([nfilt, nfft // 2])
         for j in range(0, nfilt):
