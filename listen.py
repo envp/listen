@@ -12,5 +12,3 @@ from listen.helpers.helpers import helper
 
 an4data = an4.AN4()
 
-helper.save_data(an4data.trainset)
-
