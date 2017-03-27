@@ -3,80 +3,10 @@ import random
 
 import numpy as np
 
-from enum import Enum
+from .layer import Layer
 
 
-class Neuron(object):
-    def __init__(self, indim):
-        self.weights = np.array([
-            random.random.uniform(-5e-3, 5e-3) for __ in range(1 + indim)
-        ])
-        self.error = float("nan")
-        self.delta = float("nan")
-        self.output = float("nan")
-
-    def compute(self, xs):
-        # print(xs, '.', self.weights)
-        return np.inner(self.weights, xs)
-
-    def __str__(self):
-        return "Neuron(wts={}, error={}, delta={}, derivative={}, output={})".format(
-            self.weights, self.error, self.delta, self.output *
-            (1 - self.output), self.output
-        )
-
-    def __repr__(self):
-        return str(self)
-
-
-class Layer(object):
-    def __init__(self, indim, outdim, isinput=False, isout=False, activation='sigmoid'):
-        self.indim = indim
-        self.outdim = outdim
-        self.isout = isout
-        self.isinput = isinput
-        self.activation = getattr(self, activation.value)
-        self.derivative = getattr(self, activation.value + '_derivative')
-        self.output = np.array([])
-        # Transpose of the weight matrix
-        self.neurons = [Neuron(indim) for _ in range(outdim)]
-
-    def __str__(self):
-        return "Layer({})".format(self.neurons)
-
-    def __repr__(self):
-        return str(self)
-
-    def feedforward(self, xs):
-        # assert(len(xs) == self.indim), "input={}, expected={}".format(len(xs), self.indim)
-        # Add a bias input:
-        xs = np.insert(xs, 0, 1.0)
-        for neuron in self.neurons:
-            # print("activation={}, input={}, wts={}".format(a, neuron.weights, xs))
-            # print(self, xs)
-            neuron.output = self.activation(neuron.compute(xs))
-        return [neuron.output for neuron in self.neurons]
-
-    def sign(self, zs):
-        if hasattr(zs, '__iter__'):
-            zs = np.array(list(zs))
-        return 0.5 * (np.sign(zs) + 1)
-
-    def sign_derivative(self, zs):
-        if hasattr(zs, '__iter__'):
-            zs = np.array(list(zs))
-        return np.ones_like(zs)
-
-    def sigmoid(self, zs):
-        if hasattr(zs, '__iter__'):
-            zs = np.array(list(zs))
-        return 1 / (1 + np.exp(-zs))
-
-    def sigmoid_derivative(self, zs):
-        return zs * (1 - zs)
-
-
-class DenseFeedForwardNetwork(object):
+class DenseFFN(object):
     layers = []
 
     def __init__(self, activ, *ldims):
@@ -164,13 +94,8 @@ class DenseFeedForwardNetwork(object):
     def neuron(self, i, j):
         return self.layers[i].neurons[j]
 
-    def test(self, inputs, targets):
+    def test(self, inputs):
         predictions = []
         for xs in inputs:
             predictions.append(self.predict(xs))
         return predictions
-
-
-class Activations(Enum):
-    SIGN = 'sign'
-    SIGMOID = 'sigmoid'

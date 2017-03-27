@@ -16,3 +16,8 @@ output-format=colorized
 
 [FORMAT]
 max-line-length=119
+
+[TYPECHECK]
+# Somehow pylint just can't figure numpy out
+ignored-modules = numpy
+ignored-classes = numpy
