@@ -5,7 +5,7 @@ import random
 class Neuron(object):
     def __init__(self, indim):
         self.weights = np.array([
-            random.uniform(-5e-3, 5e-3) for __ in range(1 + indim)
+            np.random.uniform(-5e-3, 5e-3) for __ in range(1 + indim)
         ])
         self.error = float("nan")
         self.delta = float("nan")

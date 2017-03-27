@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.ndimage
-import copy
 
 from listen.helpers.array_helpers import array_helpers as ahelp
 from listen.helpers.filters import Filter

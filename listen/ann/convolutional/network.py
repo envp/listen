@@ -1,4 +1,6 @@
 import numpy as np
 
-class ConvolutionalNetwork(object):
-    pass
+class ConvNet(object):
+
+    def __init__(self):
+        pass

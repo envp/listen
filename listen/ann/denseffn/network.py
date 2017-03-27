@@ -36,7 +36,7 @@ class DenseFFN(object):
             acc = 0
             if bsize:
                 inputs = list(inputs)
-                random.shuffle(inputs)
+                np.random.shuffle(inputs)
                 inputs = inputs[:int(n * bsize)]
             for i, row in enumerate(inputs):
                 outputs.append(self.predict(row))
