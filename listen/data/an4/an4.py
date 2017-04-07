@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import os
-import subprocess
-import re
 import itertools
 import logging
+import os
+import re
+import subprocess
+
+from listen.helpers import helpers
 
 __author__ = "Vaibhav Yenamandra <vyenaman@ufl.edu>"
 
@@ -50,28 +52,29 @@ class AN4Data(object):
     """
 
     def __init__(self, datapath, truthpath, convert):
-        to_res_path = lambda r: os.path.realpath(
+        def to_res_path(r): return os.path.realpath(
             os.path.join(
                 os.path.dirname(__file__),
                 'wav', os.path.dirname(r),
                 os.path.basename(r).strip() + '.raw'
             )
         )
-        data = map(to_res_path, [line for line in open(datapath, 'r')])
+
+        self.data = map(to_res_path, [line for line in open(datapath, 'r')])
         self.truth = self.parse_data(truthpath)
         if convert:
             self.convert_to_wav()
-        self.data = map(lambda s: s.replace('.raw', '.wav'), data)
+        self.data = list(map(lambda s: s.replace('.raw', '.wav'), self.data))
 
-    def parse_data(self, fpath):
+    @staticmethod
+    def parse_data(fpath):
         truth = dict()
         with open(fpath, 'r') as f:
             for line in f:
                 res = re.search(
                     r"(<s>)*\s*(?P<truth>[\w\s]+)\s*(</s>)*\s*\((?P<fileid>.+)\)", line
                 )
-                truth[
-                    res.group('fileid') + '.wav'] = res.group('truth').lstrip().rstrip().split(' ')
+                truth[res.group('fileid') + '.wav'] = res.group('truth').lstrip().rstrip().split(' ')
         return truth
 
     def __iter__(self):
@@ -97,12 +100,15 @@ class AN4Data(object):
         return map(lambda s: os.path.basename(s).replace('.wav', ''), self.data)
 
     def convert_to_wav(self):
-        count= 0
+        count = 0
         for f in self.data:
-            outname = os.path.join(os.path.dirname(f), os.path.basename(f).replace('.raw', '.wav'))
-            subprocess.run('ffmpeg -y -f s16le -ar 16k -ac 1 -i {} {}'.format(f, outname))
+            outname = os.path.join(os.path.dirname(
+                f), os.path.basename(f).replace('.raw', '.wav'))
+            subprocess.run(
+                'ffmpeg -y -f s16le -ar 16k -ac 1 -i {} {}'.format(f, outname))
+            os.remove(f)
             count += 1
-        logger.debug("Converted {} files".format(count))
+            logger.debug("Converted {} files, deleted corresponding raw".format(count))
 
 
 class AN4(object):
@@ -112,8 +118,9 @@ class AN4(object):
     that it already exists.
     """
 
-    path_to_resource = lambda resname: os.path.realpath(
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), resname))
+    def path_to_resource(resname):
+        return os.path.realpath(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), resname))
 
     DATASET_URL = 'http://www.speech.cs.cmu.edu/databases/an4/an4_raw.bigendian.tar.gz'
 
@@ -149,25 +156,34 @@ class AN4(object):
     assert os.path.exists(
         TEST_TRUTH), "No testing ground truth found at {}".format(TEST_TRUTH)
 
-    def __init__(self, debug=False, conversion=False):
+    def __init__(self, debug=False, conversion=False, phones=False):
         if debug:
             logger.setLevel(logging.DEBUG)
         else:
-            logger.setLevel(logging.INFO    )
+            logger.setLevel(logging.INFO)
         self.dictions = DictionMap(self.DICTIONARY_FILE)
         self.phonemes = self.phoneme_loads(open(self.PHONEME_LIST, 'r'))
         self.trainset = AN4Data(self.TRAIN_DATA, self.TRAIN_TRUTH, conversion)
         self.testset = AN4Data(self.TEST_DATA, self.TEST_TRUTH, conversion)
         [
             logger.debug("Loaded resource {}".format(r)) for r in [
-                self.DICTIONARY_FILE,
-                self.PHONEME_LIST,
-                self.TRAIN_DATA,
-                self.TRAIN_TRUTH,
-                self.TEST_DATA,
-                self.TEST_TRUTH
-            ]
+            self.DICTIONARY_FILE,
+            self.PHONEME_LIST,
+            self.TRAIN_DATA,
+            self.TRAIN_TRUTH,
+            self.TEST_DATA,
+            self.TEST_TRUTH
         ]
+        ]
+        if phones:
+            for k, v in self.trainset.truth.items():
+                self.trainset.truth[k] = list(map(
+                    lambda u: self.phonemes.index(u),
+                    helpers.flatten(
+                       ['SIL'] + [self.dictions.diction[u] for u in v] + ["SIL"]
+                    )
+                ))
 
-    def phoneme_loads(self, s):
-        return [line for line in s]
+    @staticmethod
+    def phoneme_loads(s):
+        return [line.strip("\n") for line in s]

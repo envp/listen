@@ -8,6 +8,9 @@ docs/source/config.rst
 docs/gh-pages
 notebook/static/components
 notebook/static/style/*.min.css*
+
+*.tar.gz
+*.zip
 notebook/static/*/js/built/
 notebook/static/*/built/
 notebook/static/built/
@@ -40,3 +43,4 @@ config.rst
 **/data/an4/README
 **/data/an4/LICENSE
 **/.vscode
+**/data/librispeech/

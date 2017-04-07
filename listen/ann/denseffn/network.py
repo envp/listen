@@ -40,7 +40,7 @@ class DenseFFN(object):
                 inputs = inputs[:int(n * bsize)]
             for i, row in enumerate(inputs):
                 outputs.append(self.predict(row))
-                cost += 0.5 * (targets[i] - outputs[i][0])**2
+                cost += 0.5 * (targets[i] - outputs[i][0]) ** 2
                 self.backpropagate(targets[i])
                 self.update(rate, row)
                 # print("== input={} - target={} - predicted={}".format(row, targets[i], outputs))
@@ -73,8 +73,7 @@ class DenseFFN(object):
                 for j, neuron in enumerate(layer.neurons):
                     neuron.error = 0
                     for out_neuron in self.layers[i + 1].neurons:
-                        neuron.error += out_neuron.weights[j] * \
-                            out_neuron.delta
+                        neuron.error += out_neuron.weights[j] * out_neuron.delta
             else:
                 for j, neuron in enumerate(layer.neurons):
                     neuron.error = expected - neuron.output

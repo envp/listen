@@ -53,3 +53,20 @@ class Layer(object):
         if hasattr(zs, '__iter__'):
             zs = np.array(list(zs))
         return np.tanh(zs)
+
+    def tanh_derivative(self, zs):
+        if hasattr(zs, '__iter__'):
+            zs = np.array(list(zs))
+        return (1 - zs * zs)
+
+    def relu(self, zs):
+        if hasattr(zs, '__iter__'):
+            zs = np.array(list(zs))
+        return zs * (zs > 0)
+
+    def relu_derivate(self, zs):
+        if hasattr(zs, '__iter__'):
+            zs = np.array(list(zs))
+        d = np.ones_like(zs)
+        d[zs < 0] = 0
+        return d

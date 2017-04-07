@@ -5,6 +5,7 @@ class Activations(Enum):
     SIGN = 'sign'
     SIGMOID = 'sigmoid'
     TANH = 'tanh'
+    RELU = 'relu'
 
     def func_name(self):
         return self.name
