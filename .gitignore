@@ -43,4 +43,6 @@ config.rst
 **/data/an4/README
 **/data/an4/LICENSE
 **/.vscode
-**/data/librispeech/
+**/data/librispeech/LibriSpeech/*
+**/data/librispeech/*.arpa
+**/data/librispeech/*.txt

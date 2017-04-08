@@ -83,10 +83,10 @@ class Spectrogram(object):
 
         return specgram
 
-    def compute_mel_cepstrum(self, data, num_mfcc_comps, frange, compression=1):
+    def compute_mel_cepstrum(self, data, nb_mfcc_bins, frange, compression=1):
         specgram = self.compute_spectrum(data)
         mel_filter, _ = Filter.create_mel_filter(
-            self.fftsize, num_mfcc_comps, *frange)
+            self.fftsize, nb_mfcc_bins, *frange)
 
         mel_cepstrum = specgram.dot(mel_filter).T
         if compression != 1:
