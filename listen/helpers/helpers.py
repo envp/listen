@@ -94,3 +94,6 @@ def chunks(data, c, step=1):
     """
     for i in range(0, len(data) - c, step):
         yield data[i: i + c]
+
+def mean_smooth(xs, window):
+    return np.convolve(xs, window, mode='same')
