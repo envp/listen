@@ -35,37 +35,51 @@ def get_transcript_from_path(fname):
 
 
 def load_from_dir(dpath):
+    """
+    Load transcripts and filenames containing audio
+    Returns a dictionary like: {filename:string --> transcript_text:string}
+    :param dpath: Path of the directory containing the dataset
+    :return: A dictionary of filenames mapped to transcription text, 
+    along with a list of filenames
+    """
     pool = Pool()
 
     if path.exists(dpath):
-        x = list(
+        wavs = list(
             glob.iglob(path.join(dpath, '**/*.wav'), recursive=True)
         )
-        y = list(
+        ts = list(
             glob.iglob(path.join(dpath, '**/*.trans.txt'), recursive=True)
         )
-        num_files = len(x)
-        xs = list(pool.imap(get_mfcc_from_path, x, 8))
-        ys = {}
-
-        for _, u in enumerate(pool.imap(get_transcript_from_path, y, 8)):
-            ys = {**ys, **u}
-        pool.close()
-        return xs, ys
-
+        val = {}
+        for transcript in ts:
+            with open(transcript, 'r') as tfile:
+                for line in tfile:
+                    ary = line.strip('\n').split(' ')
+                    val[ary[0]] = ary[1:]
+        return val, wavs
     else:
-        print("Couldn't find dataset: {}".format(dpath))
+        raise ValueError("Couldn't find dataset: {}".format(dpath))
 
 
 def load_data(dev=True, train=False, test=False):
+    """
+    Loads a standard dataset (dev / train / test) from librispeech
+    :param dev: Load dev set
+    :param train: Load train set
+    :param test: Load test set
+    :return: Transcription Dict of utterances and list of filepaths
+    """
+    ds = None
+    ls = None
     if dev:
-        xs, ys = load_from_dir(DEV_DIR)
+        ds, ls = load_from_dir(DEV_DIR)
 
     if test:
-        xs, ys = load_from_dir(TEST_DIR)
+        ds, ls = load_from_dir(TEST_DIR)
 
     if train:
-        xs, ys = load_from_dir(TRAIN_DIR)
+        ds, ls = load_from_dir(TRAIN_DIR)
 
-    return xs, ys
+    return ds, ls
 

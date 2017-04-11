@@ -3,13 +3,12 @@ import scipy.ndimage
 
 from listen.helpers.array_helpers import array_helpers as ahelp
 from listen.helpers.filters import Filter
-
+from scipy.signal import hanning
 
 class Spectrogram(object):
-    def __init__(self, fft_size, step_size, logscale, thresh):
+    def __init__(self, fft_size, step_size, thresh):
         self.fftsize = int(fft_size)
         self.step = int(step_size)
-        self.logscale = logscale
         self.thresh = thresh
 
     def overlap(self, X):
@@ -64,27 +63,29 @@ class Spectrogram(object):
         X = self.overlap(X)
 
         size = self.fftsize
-        win = 0.54 - .46 * np.cos(2 * np.pi * np.arange(size) / (size - 1))
+        # win = 0.54 - .46 * np.cos(2 * np.pi * np.arange(size) / (size - 1))
+        win = hanning(size)
         X = X * win[None]
         X = local_fft(X)[:, :cut]
         return X
 
-    def compute_spectrum(self, data):
+    def compute_spectrum(self, data, logscale=False):
         """Creates a spectrogram using data passed
         """
         specgram = np.abs(self.stft(data, real=False, compute_onesided=True))
+        specgram = ahelp.linscale(specgram, left=1e-6, right=1)
 
-        if self.logscale:
-            specgram = ahelp.linscale(specgram, left=1e-6, right=1)
+        if logscale:
+            lt = np.log10(self.thresh)
             specgram = np.log10(specgram)
-            specgram[specgram < -self.thresh] = -self.thresh
+            specgram[specgram < -lt] = -lt
         else:
-            specgram[specgram < self.thresh] = self.thresh
+            specgram[specgram < -self.thresh] = -self.thresh
 
         return specgram
 
     def compute_mel_cepstrum(self, data, nb_mfcc_bins, frange, compression=1):
-        specgram = self.compute_spectrum(data)
+        specgram = self.compute_spectrum(data, looscale=True)
         mel_filter, _ = Filter.create_mel_filter(
             self.fftsize, nb_mfcc_bins, *frange)
 

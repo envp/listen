@@ -83,3 +83,14 @@ def flatten(l):
             yield from flatten(el)
         else:
             yield el
+
+def chunks(data, c, step=1):
+    """
+    Yields a list in chunks of size `s`
+    :param data: List to get chunks from
+    :param c: Chunk size
+    :param step: Iteration step size
+    :return: Generator for chunks
+    """
+    for i in range(0, len(data) - c, step):
+        yield data[i: i + c]
