@@ -63,6 +63,7 @@ def __save_info_private(dataset,
         except Exception as e:
             print(e)
 
+
 def save_data(dataset=None, **kwargs):
     """Saves figures and numpy arrays containing spectra to local directories
     """
@@ -77,12 +78,14 @@ def save_data(dataset=None, **kwargs):
     ]
     concurrent.futures.wait(futures)
 
+
 def flatten(l):
     for el in l:
         if isinstance(el, collections.Iterable) and not isinstance(el, (str, bytes)):
             yield from flatten(el)
         else:
             yield el
+
 
 def chunks(data, c, step=1):
     """
@@ -95,5 +98,13 @@ def chunks(data, c, step=1):
     for i in range(0, len(data) - c, step):
         yield data[i: i + c]
 
+
 def mean_smooth(xs, window):
-    return np.convolve(xs, window, mode='same')
+    wsize = len(window)
+    hw = wsize // 2
+    pxs = np.append([0] * hw, xs)
+    pxs = np.append(xs, [0] * hw)
+    ds = np.zeros_like(xs)
+    for i in range(hw, len(ds) - hw, 1):
+        ds[i] = np.sum(pxs[i - hw: i + hw] * window)
+    return ds

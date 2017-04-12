@@ -29,10 +29,11 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     ste = np.zeros_like(xs)
 
     # Zero pad excess
-    xs = np.append(xs, [0] * wsize)
+    hw = wsize // 2
+    xs = np.append(xs, [0] * hw)
 
-    for i in range(0, len(xs) - wsize, 1):
-        ste[i] = np.linalg.norm(xs[i: i + wsize] * window, 2) / wsize
+    for i in range(hw, len(xs) - hw, hw // 4):
+        ste[i] = np.linalg.norm(xs[i - hw: i + hw] * window, 2) / wsize
 
     mx = np.max(ste)
     ste /= mx
@@ -40,7 +41,7 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     es = np.r_[ste[-1:0:-1], ste[1:]]
 
     # Clip to save ourselves from divide by zero
-    # es[es < level] = level
+    es[es < level] = level
 
     es = es ** -gamma
 
@@ -49,9 +50,9 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     es = es[n:]
 
     phase = np.zeros_like(es)
-    es = np.append(es, [0] * wsize)
-    for i in range(0, len(es) - wsize, 1):
-        phase[i] = np.angle(np.sum(fftpack.fft(es[i: i + wsize] * window)))
+    es = np.append(es, [0] * hw)
+    for i in range(hw, len(es) - hw, 1):
+        phase[i] = np.angle(np.sum(fftpack.fft(es[i - hw: i + hw] * window)))
 
     phase = -np.diff(phase)
 
@@ -59,8 +60,6 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     for i in range(len(phase) - wsize):
         phase[i] = max(phase[i:i + wsize])
 
-    for i in range(len(phase) - wsize):
-        phase[i] = max(phase[i:i + wsize])
     phase = helpers.mean_smooth(phase, window=window)
 
     peaks = phase
