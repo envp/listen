@@ -33,13 +33,11 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     xs = np.append(xs, [0] * hw)
 
     for i in range(hw, len(xs) - hw, hw // 4):
-        try:
-            ste[i] = np.linalg.norm(xs[i - hw: i + hw] * window, 2) / wsize
-        except:
-            print(i)
+        ste[i] = np.linalg.norm(xs[i - hw: i + hw] * window, 2) / wsize
 
     mx = np.max(ste)
     ste /= mx
+    # Lateral mirroring about Y-axis
     es = np.r_[ste[-1:0:-1], ste[1:]]
 
     # Clip to save ourselves from divide by zero
@@ -48,7 +46,9 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     es = es ** -gamma
 
     fftpack.ifft(es, overwrite_x=True)
+    # Keep causal part of signal
     es = es[n:]
+
     phase = np.zeros_like(es)
     es = np.append(es, [0] * hw)
     for i in range(hw, len(es) - hw, 1):
