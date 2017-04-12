@@ -1,12 +1,11 @@
 import numpy as np
-import peakutils
-
-from scipy.signal import hamming, gaussian, savgol_filter
 from scipy import fftpack
+from scipy.signal import chebwin
 
 from listen.helpers import helpers
 
 MIN_SEGMENT_DURATION = 8
+
 
 def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     """
@@ -17,7 +16,7 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     :return: Segment boundaries for speech signal
     """
     wsize = (min_duration * rate) // 1000
-    window = hamming(wsize)
+    window = chebwin(wsize, at=at)
 
     level = 10 ** (at / -20)
     xs = np.zeros_like(data)
@@ -30,10 +29,14 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     ste = np.zeros_like(xs)
 
     # Zero pad excess
-    xs = np.append(xs, [0] * wsize)
+    hw = wsize // 2
+    xs = np.append(xs, [0] * hw)
 
-    for i in range(0, len(xs) - wsize):
-        ste[i] = np.linalg.norm(xs[i: i + wsize] * window, 2) / wsize
+    for i in range(hw, len(xs) - hw, 1):
+        try:
+            ste[i] = np.linalg.norm(xs[i - hw: i + hw] * window, 2) / wsize
+        except:
+            print(i)
 
     mx = np.max(ste)
     ste /= mx
@@ -42,21 +45,20 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     # Clip to save ourselves from divide by zero
     es[es < level] = level
 
-    es = savgol_filter(es, wsize + 1, 1)
     es = es ** -gamma
 
     fftpack.ifft(es, overwrite_x=True)
     es = es[n:]
     phase = np.zeros_like(es)
-    es = np.append(es, [0] * wsize)
-    for i in range(len(es) - wsize):
-        phase[i] = np.angle(np.sum(fftpack.fft(es[i: i + wsize] * window)))
+    es = np.append(es, [0] * hw)
+    for i in range(hw, len(es) - hw, 1):
+        phase[i] = np.angle(np.sum(fftpack.fft(es[i - hw: i + hw] * window)))
 
     phase = -np.diff(phase)
 
     # Remove jagged edges and smooth
     for i in range(len(phase) - wsize):
-        phase[i] = max(phase[i:i+wsize])
+        phase[i] = max(phase[i:i + wsize])
 
     phase = helpers.mean_smooth(phase, window=window)
 
