@@ -32,11 +32,7 @@ def segments(data, rate, min_duration=8, gamma=0.01, at=100, alpha=0.95):
     hw = wsize // 2
     xs = np.append(xs, [0] * hw)
 
-<<<<<<< HEAD
     for i in range(hw, len(xs) - hw, hw // 4):
-=======
-    for i in range(hw, len(xs) - hw, 1):
->>>>>>> 15e41fd0d2ac1a2055639fada6c4b4f2218e4373
         try:
             ste[i] = np.linalg.norm(xs[i - hw: i + hw] * window, 2) / wsize
         except:
