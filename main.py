@@ -4,10 +4,9 @@ import pickle
 import gzip
 import numpy as np
 
-from IPython import embed
-
 from listen.audio import io
 from listen.audio import segmentation
+from listen.utils import generate_dataset
 
 from listen.ann.denseffn import denseffn
 from listen.ann.activations import Activations
@@ -43,9 +42,7 @@ ACT_FUNC = Activations.relu
 
 
 def main():
-    # Debug
-    sys.argv = ['', 'train']
-    if len(sys.argv) < 3 and not sys.argv[1] == 'train':
+    if len(sys.argv) < 3 and not (sys.argv[1] == 'train' or sys.argv[1] == 'datagen'):
         print(USAGE_STRING)
     else:
         mode = sys.argv[1]
@@ -86,7 +83,7 @@ def main():
             odim = train_y[0].shape[0]
 
             # Hidden layer dimensions
-            hdims = (100, )
+            hdims = (50, )
 
             network = denseffn.DenseFFN(ACT_FUNC, idim, *hdims, odim)
 
@@ -105,6 +102,9 @@ def main():
             nnet_file = open(TRAINED_DUMP, 'wb')
             pickle.dump(network, nnet_file, protocol=pickle.HIGHEST_PROTOCOL)
             nnet_file.close()
+
+        elif mode == 'datagen':
+            generate_dataset.generate_data()
 
         else:
             print(USAGE_STRING)

@@ -3,8 +3,10 @@ import glob
 import os.path as path
 import pickle
 import re
+import gzip
+import time
 import gc
-
+from IPython import  embed
 from scipy.io import wavfile
 from scipy.interpolate import interp1d
 
@@ -33,7 +35,7 @@ def generate_data():
 
     DATA_DIR = path.realpath(path.dirname(__file__) + '/../data/gen/proc')
     DATASET_PATH = path.realpath(path.dirname(__file__) + '/../data/gen/pickled/')
-    DATASET_PATH_FMT = DATASET_PATH + 'data_batch_{}.pkl'
+    DATASET_FILE = DATASET_PATH + 'data_batch_full.pkl'
     MAX_NB_COPIES = 12
 
     # 1% of the dataset is silence
@@ -48,7 +50,7 @@ def generate_data():
     STEP_SIZE = FFT_SIZE // 8
     LOG_THRESHOLD = 6
     CHUNK_SIZE = 1000
-    NB_MFCC_BINS = 54
+    NB_MFCC_BINS = 40
     FREQ_RANGE = (0, 8000)
     """
     Generating the dataset.
@@ -62,13 +64,19 @@ def generate_data():
 
     utterances = list(set(map(lambda w: re.match(r'[a-z]+', path.basename(w)).group(0), wavs)))
 
+    # +1 for silence
+    nb_classes = len(utterances) + 1
+
     # Dump the labels
-    data_file = open(path.realpath(DATASET_PATH + 'all_labels.pkl'), "wb")
+    data_file = open(path.realpath(path.join(DATASET_PATH, 'all_labels.pkl')), "wb")
     pickle.dump({'label_names': ['_'] + utterances}, data_file, pickle.HIGHEST_PROTOCOL)
     data_file.close()
     print('Wrote labels to file.')
 
     glob_max = -1
+    cepstra = []
+    utterance_idx = []
+    nb_data = 0
 
     # Shuffle input files
     np.random.shuffle(wavs)
@@ -77,9 +85,6 @@ def generate_data():
 
     for chunk_idx, chunk in enumerate(chunk_it(wavs, CHUNK_SIZE)):
         print("Processing chunk {}, size={}".format(chunk_idx, sizeof_fmt(sum(path.getsize(c) for c in chunk))))
-        cepstra = []
-        utterance_idx = []
-        dump_data = {}
 
         for wav in chunk:
             rate, snd = wavfile.read(wav, mmap=True)
@@ -100,62 +105,62 @@ def generate_data():
                 cep = spec.compute_mel_cepstrum(sound.astype('float32'), nb_mfcc_bins=NB_MFCC_BINS, frange=FREQ_RANGE)
                 # Ensure square shape with piecewise linear interpolation
                 if cep.shape[0] != cep.shape[1]:
-                    interpolant = interp1d(np.linspace(0, 1, cep.shape[1]), cep, axis=1, fill_value='extrapolate')
+                    interpolant = interp1d(np.linspace(0, 1, cep.shape[1]), cep, axis=1)
                     cep = interpolant(np.linspace(0, 1, cep.shape[0]))
-                cepstra.append(cep - np.mean(cep))
-                # Reserve index 0 for use later
-                utterance_idx.append(uidx + 1)
-        """
-        Add silence as data
-        """
-        # Manually add noise as silence now
-        nb_silent = int(SILENCE_RELATIVE_COUNT * len(cepstra))
-        for i in range(nb_silent):
-            noise_db = np.random.uniform(*SILENCE_RANGE_DB)
-            noise_level = (10 ** (noise_db / 20)) * glob_max
-            noise = np.random.normal(0, noise_level, len(snd))
-            cep = spec.compute_mel_cepstrum(noise.astype('float32'), nb_mfcc_bins=NB_MFCC_BINS, frange=FREQ_RANGE)
-            if cep.shape[0] != cep.shape[1]:
-                interpolant = interp1d(np.linspace(0, 1, cep.shape[1]), cep, axis=1, fill_value='extrapolate')
-                cep = interpolant(np.linspace(0, 1, cep.shape[0]))
-            cepstra.append(cep)
-            # Silence is index 0
-            utterance_idx.append(0)
 
-        # Shuffle again to avoid keeping copies together
+                # Center wrt mean
+                cep = cep - np.mean(cep)
+                cepstra.append(cep.ravel())
+
+                # Reserve index 0 for use later, also create 1-hot vectors on the fly
+                uvec = np.zeros(nb_classes, dtype='int8')
+                uvec[uidx + 1] = 1
+                utterance_idx.append(uvec)
+
+            """
+            Add silence as data
+            """
+            # Manually add noise as silence now
+            nb_silent = int(SILENCE_RELATIVE_COUNT * len(cepstra))
+            for i in range(nb_silent):
+                noise_db = np.random.uniform(*SILENCE_RANGE_DB)
+                noise_level = (10 ** (noise_db / 20)) * glob_max
+                noise = np.random.normal(0, noise_level, len(snd))
+                cep = spec.compute_mel_cepstrum(noise.astype('float32'), nb_mfcc_bins=NB_MFCC_BINS, frange=FREQ_RANGE)
+                if cep.shape[0] != cep.shape[1]:
+                    interpolant = interp1d(np.linspace(0, 1, cep.shape[1]), cep, axis=1)
+                    cep = interpolant(np.linspace(0, 1, cep.shape[0]))
+
+                # Append a flattened array
+                cepstra.append(cep.ravel())
+                # Silence is index 0
+                uvec = np.zeros(nb_classes, dtype='int8')
+                uvec[0] = 1
+                utterance_idx.append(uvec)
+
+
         nb_data = len(cepstra)
-        perm = np.random.permutation(nb_data)
-        cepstra = np.array(cepstra)
-        utterance_idx = np.array(utterance_idx)
-        # Shuffle axis 0
-        cepstra = cepstra[perm, :, :]
-        utterance_idx = utterance_idx[perm]
-
-        print(cepstra.shape, utterance_idx.shape)
-
-        # Just a sanity check assertion
-        assert(cepstra.shape[0] == utterance_idx.shape[0]), "Data, Label vectors shapes do not match!"
-
+        # Shuffle again to avoid keeping copies together
+        cepstra, utterance_idx = zip(*np.random.permutation(list(zip(cepstra, utterance_idx))))
         print("Working with {0} ({1} unique) sounds, including silence. )".format(nb_data, len(chunk)))
 
-        """
-        Serializing the dataset.
-        """
-        # Split into training and validation sets (10% for validation, 90% for training)
-        dump_data = {
-            'validation_x': cepstra[:nb_data//10],
-            'validation_y': utterance_idx[:nb_data//10],
-            'training_x': cepstra[nb_data//10:],
-            'training_y': utterance_idx[nb_data//10:]
-        }
+    embed()
+    nb_data = len(cepstra)
+    # Split into training and validation sets (25% for validation, 75% for training)
+    dump_data = {
+        'validate_x': cepstra[:nb_data//4],
+        'validate_y': utterance_idx[:nb_data//4],
+        'train_x': cepstra[nb_data//4:],
+        'train_y': utterance_idx[nb_data//4:]
+    }
 
-        # Dump dataset
-        data_file = open(DATASET_PATH_FMT.format(chunk_idx), "wb")
-        pickle.dump(dump_data, data_file, pickle.HIGHEST_PROTOCOL)
-        data_file.close()
-        # Trigger GC to clear all the massive number of references we now have remaining
-        gc.collect()
 
+    # Dump collective dataset
+    data_file = open(DATASET_FILE, "wb")
+    pickle.dump(dump_data, data_file, pickle.HIGHEST_PROTOCOL)
+    data_file.close()
+
+    print('Wrote to dataset: {}'.format(DATASET_FILE))
     print("Done.")
 
 if __name__ == '__main__':
