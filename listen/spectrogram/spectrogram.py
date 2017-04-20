@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.ndimage
 
+from IPython import embed
 from listen.utils.array_helpers import array_helpers as ahelp
 from listen.utils.filters import Filter
 from scipy.signal import hanning
@@ -72,6 +73,7 @@ class Spectrogram(object):
     def compute_spectrum(self, data, logscale=False):
         """Creates a spectrogram using data passed
         """
+        embed()
         specgram = np.abs(self.stft(data, real=False, compute_onesided=True))
         specgram = ahelp.linscale(specgram, left=1e-6, right=1)
 
@@ -83,6 +85,7 @@ class Spectrogram(object):
         return specgram
 
     def compute_mel_cepstrum(self, data, nb_mfcc_bins, frange, compression=1):
+        # embed()
         specgram = self.compute_spectrum(data, logscale=True)
         mel_filter, _ = Filter.create_mel_filter(
             self.fftsize, nb_mfcc_bins, *frange)

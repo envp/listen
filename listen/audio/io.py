@@ -18,7 +18,7 @@ def read(fname, mmap=True, backend='scipy', rate=None):
             # TODO: Replace this
             outfile = path.realpath(path.dirname(__file__) + '/out.wav')
             # fname = path.realpath(fname)
-            process = subprocess.Popen('ffmpeg.exe -i {} -y -ar {} {}'.format(fname, rate, outfile), shell=True)
+            process = subprocess.Popen('ffmpeg -i {} -y -ar {} {}'.format(fname, rate, outfile), shell=True)
             process.wait()
             sr, data = wavfile.read(outfile, mmap=mmap)
 
