@@ -31,8 +31,8 @@ def generate_data():
     Constants.
     """
 
-    DATA_DIR = path.realpath(path.dirname(__file__) + '../data/gen/proc')
-    DATASET_PATH = path.realpath(path.dirname(__file__) + '../data/gen/pickled/')
+    DATA_DIR = path.realpath(path.dirname(__file__) + '/../data/gen/proc')
+    DATASET_PATH = path.realpath(path.dirname(__file__) + '/../data/gen/pickled/')
     DATASET_PATH_FMT = DATASET_PATH + 'data_batch_{}.pkl'
     MAX_NB_COPIES = 12
 
@@ -64,7 +64,7 @@ def generate_data():
 
     # Dump the labels
     data_file = open(path.realpath(DATASET_PATH + 'all_labels.pkl'), "wb")
-    pickle.dump({'label_names': utterances}, data_file, pickle.HIGHEST_PROTOCOL)
+    pickle.dump({'label_names': ['_'] + utterances}, data_file, pickle.HIGHEST_PROTOCOL)
     data_file.close()
     print('Wrote labels to file.')
 
@@ -143,10 +143,10 @@ def generate_data():
         """
         # Split into training and validation sets (10% for validation, 90% for training)
         dump_data = {
-            'validation_x': cepstra[nb_data//10:],
-            'validation_y': utterance_idx[nb_data//10:],
-            'training_x': cepstra[:nb_data//10],
-            'training_y': utterance_idx[:nb_data//10]
+            'validation_x': cepstra[:nb_data//10],
+            'validation_y': utterance_idx[:nb_data//10],
+            'training_x': cepstra[nb_data//10:],
+            'training_y': utterance_idx[nb_data//10:]
         }
 
         # Dump dataset
