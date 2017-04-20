@@ -76,16 +76,14 @@ class Spectrogram(object):
         specgram = ahelp.linscale(specgram, left=1e-6, right=1)
 
         if logscale:
-            lt = np.log10(self.thresh)
+            lt = np.log(self.thresh)
             specgram = np.log10(specgram)
             specgram[specgram < -lt] = -lt
-        else:
-            specgram[specgram < -self.thresh] = -self.thresh
 
         return specgram
 
     def compute_mel_cepstrum(self, data, nb_mfcc_bins, frange, compression=1):
-        specgram = self.compute_spectrum(data, looscale=True)
+        specgram = self.compute_spectrum(data, logscale=True)
         mel_filter, _ = Filter.create_mel_filter(
             self.fftsize, nb_mfcc_bins, *frange)
 

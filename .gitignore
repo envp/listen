@@ -46,3 +46,5 @@ config.rst
 **/data/librispeech/LibriSpeech/*
 **/data/librispeech/*.arpa
 **/data/librispeech/*.txt
+**/data/gen/*.*
+**/data/gen/**/*.*

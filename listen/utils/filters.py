@@ -1,6 +1,6 @@
 import numpy as np
 
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, hamming
 
 class Filter(object):
     @staticmethod
@@ -82,3 +82,50 @@ class Filter(object):
         mel_filter = mel_inversion_filter.T / mel_inversion_filter.sum(axis=1)
 
         return mel_filter, mel_inversion_filter
+
+    @staticmethod
+    def time_stretch(x, ts_ratio, L=1024, H=256, win=hamming):
+        syn_hop = int(H * ts_ratio)
+        N = len(x)
+        w = win(L)
+        gain = 1. / (L * np.sum((win(L) * win(L))) / syn_hop)
+
+        unwrapdata = 2 * np.pi * H / L * np.arange(0, L).T
+
+        yangle, ysangle = np.zeros(L), np.zeros(L)
+
+        ys = np.zeros(L, dtype=np.complex)
+        yprevwin = np.zeros(L - syn_hop, dtype=np.complex)
+
+        first_time = True
+        y = np.array(0)
+
+        for i in np.arange(0, N - L, H):
+
+            yprevangle = yangle
+
+            yfft = np.fft.fft(w * x[i : i + L])
+            ymag, yangle = np.abs(yfft), np.angle(yfft)
+
+            yunwrap = (yangle - yprevangle) - unwrapdata
+            yunwrap = yunwrap - np.round(yunwrap / (2.*np.pi)) * 2 * np.pi
+            yunwrap = (yunwrap + unwrapdata) * ts_ratio
+
+            if first_time:
+                ysangle = yangle
+                first_time = False
+            else:	ysangle += yunwrap
+
+            ys.real, ys.imag = np.cos(ysangle), np.sin(ysangle)
+            ys *= ymag
+            ywin = np.fft.ifft(w * ys)
+
+            overlap_add = np.hstack((ywin[:L - syn_hop] + yprevwin,\
+                        ywin[L - syn_hop: ]))
+            yistfft = overlap_add[: syn_hop]
+            yprevwin = overlap_add[syn_hop : ]
+
+            yistfft = yistfft * gain
+            y = np.hstack((y, yistfft))
+
+        return np.real(y * np.max(np.abs(x)) / np.max(np.abs(y)))
