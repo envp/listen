@@ -84,7 +84,7 @@ def generate_data():
     for chunk_idx, chunk in tqdm(enumerate(chunk_it(wavs, CHUNK_SIZE))):
         print("Processing chunk {}, size={}".format(chunk_idx, sizeof_fmt(sum(path.getsize(c) for c in chunk))))
 
-        for wav in chunk:
+        for wav in tqdm(chunk):
             rate, snd = wavfile.read(wav, mmap=True)
             m = np.max(snd)
             glob_max = max(m, glob_max)
