@@ -190,19 +190,18 @@ class DenseFFN(object):
         return predictions
 
 
-#
-# HYPER PARAMATERS
-#
-DATASET_SIZE = 1511
-EPOCHS = 500
-RATE = 0.1
-THRESHOLD = 1e-3
-IN_FLAG = 1
-OUT_FLAG = 0
-random.seed(1)
-
-
 def main():
+    #
+    # HYPER PARAMATERS
+    #
+    DATASET_SIZE = 500
+    EPOCHS = 500
+    RATE = 0.1  
+    THRESHOLD = 1e-3
+    IN_FLAG = 1
+    OUT_FLAG = 0
+    random.seed(1)
+
     # Repeatable psuedo-random results
     data = CircleDataSet(0.5, 0.6, 0.4)
 
