@@ -3,9 +3,7 @@ import glob
 import os.path as path
 import pickle
 import re
-import gzip
-import time
-import gc
+import tqdm
 from IPython import  embed
 from scipy.io import wavfile
 from scipy.interpolate import interp1d
@@ -83,7 +81,7 @@ def generate_data():
 
     spec = Spectrogram(FFT_SIZE, STEP_SIZE, LOG_THRESHOLD)
 
-    for chunk_idx, chunk in enumerate(chunk_it(wavs, CHUNK_SIZE)):
+    for chunk_idx, chunk in tqdm(enumerate(chunk_it(wavs, CHUNK_SIZE))):
         print("Processing chunk {}, size={}".format(chunk_idx, sizeof_fmt(sum(path.getsize(c) for c in chunk))))
 
         for wav in chunk:
