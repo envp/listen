@@ -48,3 +48,4 @@ config.rst
 **/data/librispeech/*.txt
 **/data/gen/*.*
 **/data/gen/**/*.*
+vv**/aud****
