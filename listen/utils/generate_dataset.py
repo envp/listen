@@ -3,7 +3,7 @@ import glob
 import os.path as path
 import pickle
 import re
-import tqdm
+from tqdm import tqdm
 from IPython import  embed
 from scipy.io import wavfile
 from scipy.interpolate import interp1d
