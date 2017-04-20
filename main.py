@@ -1,15 +1,16 @@
 import os
 import sys
 import pickle
-import glob
+import gzip
 import numpy as np
+
+from IPython import embed
 
 from listen.audio import io
 from listen.audio import segmentation
 
 from listen.ann.denseffn import denseffn
 from listen.ann.activations import Activations
-from listen.utils.generate_dataset import generate_data
 
 USAGE_STRING = """
     +==============================+
@@ -25,15 +26,25 @@ USAGE_STRING = """
     ======
     
     Arg # 1: One of 'train' or 'test'
-    Arg # 2: Path to the WAVfile in PCM format to the script as a command line 
+    Arg # 2: Path to the WAVfile in PCM format to the script 
+             as a command line if last argument was 'test' 
     
     Example:
     python {} test /path/to/pcm_encoded_wavfile.wav
 """.format(sys.argv[0])
 
-DATA_DIR = os.path.realpath('./listen/data/gen/pickled/')
+DATA_PKL_GZ = os.path.realpath('./listen/data/gen/pickled/ml.pkl.gz')
+LABELS_FILE = os.path.realpath('./listen/data/gen/pickled/all_labels.pkl')
+TRAINED_DUMP = os.path.realpath('./listen/data/gen/pickeled/nnet.pkl')
+
+EPOCHS = 100
+RATE = 1e-2
+ACT_FUNC = Activations.relu
+
 
 def main():
+    # Debug
+    sys.argv = ['', 'train']
     if len(sys.argv) < 3 and not sys.argv[1] == 'train':
         print(USAGE_STRING)
     else:
@@ -60,8 +71,40 @@ def main():
 
             # Call the classifier
         elif mode == 'train':
-            # batch = pickle.load(open(next(glob.iglob(os.path.join(DATA_DIR, '*.pkl'))), 'rb'))
-            denseffn.main()
+            # denseffn.main()
+            data_file = gzip.open(DATA_PKL_GZ)
+            print('== Loading datasets...')
+            data = pickle.load(data_file)
+            train_x = data['train_x']
+            train_y = data['train_y']
+            validate_x = data['validate_x']
+            validate_y = data['validate_y']
+            print('== Done loading.')
+            # Input dimension (2916 for current dataset)
+            idim = train_x[0].shape[0]
+            # Output dimension (1011)
+            odim = train_y[0].shape[0]
+
+            # Hidden layer dimensions
+            hdims = (100, )
+
+            network = denseffn.DenseFFN(ACT_FUNC, idim, *hdims, odim)
+
+            print(
+                "Training network with validation for params: EPOCHS={}, RATE={}, ACTIVATION={}".format(
+                    EPOCHS, RATE, ACT_FUNC
+                )
+            )
+            result = network.train(
+                train_x, train_y, validate_x, validate_y, epochs=EPOCHS, rate=RATE
+            )
+
+            print("\tTraining results={}".format(result))
+
+            # Dump training results that we can use for classification later
+            nnet_file = open(TRAINED_DUMP, 'wb')
+            pickle.dump(network, nnet_file, protocol=pickle.HIGHEST_PROTOCOL)
+            nnet_file.close()
 
         else:
             print(USAGE_STRING)

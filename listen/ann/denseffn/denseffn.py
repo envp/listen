@@ -1,10 +1,10 @@
 import pprint
 import random
-
+import time
+from tqdm import tqdm
 import numpy as np
 
 from listen.ann.activations import Activations
-
 
 class CircleDataSet(object):
     IN_VAL = 1
@@ -51,7 +51,6 @@ class CircleDataSet(object):
             if self.OUT_VAL == p[1]:
                 pts.append(p)
         return pts
-
 
 class Neuron(object):
     def __init__(self, indim):
@@ -122,30 +121,32 @@ class DenseFFN(object):
     def __str__(self):
         return "DenseFFN({})".format('->'.join(map(str, self.layers)))
 
-    def train(self, inputs, targets, validations, validation_targets, epochs=1, rate=1, bsize=None, threshold=1e-3):
+    def train(self, inputs, targets, validations, validation_targets, epochs=1, rate=1, bsize=None):
         n = len(inputs)
         acc = 0
-        for epoch in range(epochs):
+        for epoch in tqdm(range(epochs)):
             # Feedforward loop
-            for i, row in enumerate(inputs):
+            start = time.time()
+            for i, row in tqdm(enumerate(inputs)):
                 self.predict(row)
                 self.backpropagate(targets[i])
                 self.update(rate, row)
 
 
             # 0-1 loss
-            for i, row in enumerate(validations):
+            for i, row in tqdm(enumerate(validations)):
                 predicted = self.predict(row)
                 predicted = np.array(predicted)
                 predicted = 1 * (predicted >= 0.5)
                 acc += sum( 1 * (predicted == validation_targets[i]))
 
             acc /= len(validation_targets)
+            end = time.time()
 
-            if (epoch + 1) % 50 == 0:
-                print("== epoch={:04d}\taccuracy={}".format(
-                    epoch + 1, acc
-                ))
+            print("== epoch={:04d}\taccuracy={}, ({}s)".format(
+                epoch + 1, acc, end - start
+            ))
+
 
         return {'accuracy': acc}
 
@@ -154,7 +155,6 @@ class DenseFFN(object):
         for layer in self.layers:
             pred = layer.feedforward(pred)
             layer.output = pred
-            # print("==layer==")
         return pred
 
     def backpropagate(self, expected):
@@ -178,7 +178,7 @@ class DenseFFN(object):
 
             inputs = np.insert(inputs, 0, 1.0)
             for neuron in layer.neurons:
-                neuron.weights = neuron.weights + rate * neuron.delta * inputs
+                neuron.weights = neuron.weights + rate * np.sum(neuron.delta) * inputs
 
     def neuron(self, i, j):
         return self.layers[i].neurons[j]
@@ -196,8 +196,7 @@ def main():
     #
     DATASET_SIZE = 500
     EPOCHS = 500
-    RATE = 0.1  
-    THRESHOLD = 1e-3
+    RATE = 0.1
     IN_FLAG = 1
     OUT_FLAG = 0
     random.seed(1)
@@ -218,7 +217,7 @@ def main():
         DATASET_SIZE, train_targets.count(IN_FLAG), train_targets.count(OUT_FLAG), EPOCHS, RATE, Activations.sigmoid
     ))
     result = network.train(
-        training, train_targets, validation, validation_targets, threshold=THRESHOLD, epochs=EPOCHS, rate=RATE
+        training, train_targets, validation, validation_targets, epochs=EPOCHS, rate=RATE
     )
 
     print("\tTraining results={}".format(result))
