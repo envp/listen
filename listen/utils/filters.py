@@ -84,7 +84,7 @@ class Filter(object):
         return mel_filter, mel_inversion_filter
 
     @staticmethod
-    def time_stretch(x, ts_ratio, L=1024, H=256, win=hamming):
+    def time_stretch(x, ts_ratio, L=1024, H=128, win=hamming):
         syn_hop = int(H * ts_ratio)
         N = len(x)
         w = win(L)

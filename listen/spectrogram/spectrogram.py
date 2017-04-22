@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import scipy.ndimage
 
 from IPython import embed
@@ -36,7 +37,8 @@ class Spectrogram(object):
         a = X
 
         valid = len(a) - ws
-        nw = int(valid // ss)
+        nw = valid // ss
+        nw = 1 if nw == 0 else nw
         out = np.ndarray((nw, ws), dtype=a.dtype)
 
         for i in range(nw):
@@ -73,9 +75,8 @@ class Spectrogram(object):
     def compute_spectrum(self, data, logscale=False):
         """Creates a spectrogram using data passed
         """
-        embed()
         specgram = np.abs(self.stft(data, real=False, compute_onesided=True))
-        specgram = ahelp.linscale(specgram, left=1e-6, right=1)
+        # specgram = ahelp.linscale(specgram, left=1e-6, right=1)
 
         if logscale:
             lt = np.log(self.thresh)

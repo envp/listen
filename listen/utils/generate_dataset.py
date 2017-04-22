@@ -142,7 +142,6 @@ def generate_data():
         cepstra, utterance_idx = zip(*np.random.permutation(list(zip(cepstra, utterance_idx))))
         print("Working with {0} ({1} unique) sounds, including silence. )".format(nb_data, len(chunk)))
 
-    embed()
     nb_data = len(cepstra)
     # Split into training and validation sets (25% for validation, 75% for training)
     dump_data = {

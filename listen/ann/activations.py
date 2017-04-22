@@ -31,7 +31,11 @@ class Activations():
         return zs * (zs > 0)
 
     @staticmethod
-    def softmax(zs):
-        d = np.sum(np.exp(zs), axis=1)
-        d = d.reshape(d.shape[0], 1)
-        return np.exp(zs) / d
+    def softmax(zs, deriv=False):
+        """
+        Expect to be given a one-hot vector
+
+        """
+
+        ex = np.exp(zs - np.max(zs))
+        return ex / np.sum(ex)

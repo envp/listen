@@ -62,7 +62,6 @@ class Neuron(object):
         self.output = float("nan")
 
     def compute(self, xs):
-        # print(xs, '.', self.weights)
         return np.inner(self.weights, xs)
 
     def __str__(self):
@@ -75,13 +74,13 @@ class Neuron(object):
 
 
 class Layer(object):
-    def __init__(self, indim, outdim, isinput=False, isout=False, activation='sigmoid'):
+    def __init__(self, indim, outdim, isinput=False, isout=False, activation=Activations.sigmoid):
         self.indim = indim
         self.outdim = outdim
         self.isout = isout
         self.isinput = isinput
         self.activation = activation
-        self.output = np.array([])
+        self.output = np.zeros(outdim)
         # Transpose of the weight matrix
         self.neurons = [Neuron(indim) for _ in range(outdim)]
 
@@ -99,7 +98,8 @@ class Layer(object):
             # print("activation={}, input={}, wts={}".format(a, neuron.weights, xs))
             # print(self, xs)
             neuron.output = self.activation(neuron.compute(xs))
-        return [neuron.output for neuron in self.neurons]
+        self.output = [neuron.output for neuron in self.neurons]
+        return self.output
 
 
 class DenseFFN(object):
@@ -124,23 +124,28 @@ class DenseFFN(object):
     def train(self, inputs, targets, validations, validation_targets, epochs=1, rate=1, bsize=None):
         n = len(inputs)
         acc = 0
-        for epoch in tqdm(range(epochs)):
+        for epoch in range(epochs):
             # Feedforward loop
             start = time.time()
-            for i, row in tqdm(enumerate(inputs)):
+
+            # Sample 10% without repeating a training point
+            samples = np.random.permutation(inputs)[:len(inputs) // 100]
+            print("\nTraining with a random subset of size: {}".format(len(inputs) // 100))
+
+            for i, row in enumerate(samples):
                 self.predict(row)
                 self.backpropagate(targets[i])
                 self.update(rate, row)
-
 
             # 0-1 loss
             for i, row in tqdm(enumerate(validations)):
                 predicted = self.predict(row)
                 predicted = np.array(predicted)
-                predicted = 1 * (predicted >= 0.5)
-                acc += sum( 1 * (predicted == validation_targets[i]))
+                predicted = np.argmax(Activations.softmax(predicted))
+                if predicted == np.argmax(validation_targets[i]):
+                    acc += 1
 
-            acc /= len(validation_targets)
+            acc /= len(validation_targets[i])
             end = time.time()
 
             print("== epoch={:04d}\taccuracy={}, ({}s)".format(
@@ -154,7 +159,6 @@ class DenseFFN(object):
         pred = list(xs)
         for layer in self.layers:
             pred = layer.feedforward(pred)
-            layer.output = pred
         return pred
 
     def backpropagate(self, expected):
@@ -167,7 +171,7 @@ class DenseFFN(object):
                         neuron.error += out_neuron.weights[j] * out_neuron.delta
             else:
                 for j, neuron in enumerate(layer.neurons):
-                    neuron.error = expected - neuron.output
+                    neuron.error = expected - Activations.softmax(neuron.output)
             for j, neuron in enumerate(layer.neurons):
                 neuron.delta = neuron.error * layer.activation(neuron.output, deriv=True)
 
