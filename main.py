@@ -41,7 +41,7 @@ DATA_PKL_GZ = os.path.realpath('./listen/data/gen/pickled/ml.pkl.gz')
 LABELS_FILE = os.path.realpath('./listen/data/gen/pickled/all_labels.pkl')
 TRAINED_DUMP = os.path.realpath('./listen/data/gen/pickled/nnet.pkl')
 
-EPOCHS = 1
+EPOCHS = 10
 RATE = 1
 ACT_FUNC = Activations.relu
 
@@ -114,7 +114,7 @@ def main():
             odim = train_y[0].shape[0]
 
             # Hidden layer dimensions
-            hdims = (1000, 500)
+            hdims = (100, )
 
             network = denseffn.DenseFFN(ACT_FUNC, idim, *hdims, odim)
 
